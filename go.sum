@@ -1,0 +1,4 @@
+github.com/sgtdi/fswatcher v1.2.0 h1:uSJuMc3/Eo/vaPnZWpJ42EFYb5j38cZENmkszOV0yhw=
+github.com/sgtdi/fswatcher v1.2.0/go.mod h1:smzXnaqu0SYJQNIwGLLkvRkpH4RdEACB7avMSsSaqjQ=
+golang.org/x/sys v0.40.0 h1:DBZZqJ2Rkml6QMQsZywtnjnnGvHza6BTfYFWY9kjEWQ=
+golang.org/x/sys v0.40.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
