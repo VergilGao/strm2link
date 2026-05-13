@@ -1,9 +1,13 @@
 # strm2link
 
 根据 `jellyfin` 的安全需要，在新版本(>=10.11.7)以后，将不再支持指向本地文件的 `strm` 文件。
-详情请参考这个 [issue](https://github.com/jellyfin/jellyfin/issues/16557)
+
+详情请参考这个 [issue]('https://github.com/jellyfin/jellyfin/issues/16557')
+
 `jellyfin` 的开发者推荐使用符号链接替代 `strm` 文件。
+
 由于 `openlist` 本身不支持生成符号链接，而且作为一个网盘聚合器，提供生成符号链接这样的功能本拉就很奇怪。
+
 为此，我开发了这个轻量级文件监控工具，根据 `.strm` 文件内容（本地绝对路径）自动生成符号链接。  
 
 ## 工作原理
