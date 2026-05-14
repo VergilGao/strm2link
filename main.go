@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	sourceRoot = getEnv("STRM_SOURCE_DIR", "/strm")
-	linkRoot   = getEnv("STRM_LINK_DIR", "/link")
+	sourceRoot   = getEnv("STRM_SOURCE_DIR", "/strm")
+	linkRoot     = getEnv("STRM_LINK_DIR", "/link")
+	debugEnabled = false
 )
 
 var strmLinkCache sync.Map
@@ -26,8 +27,18 @@ func getEnv(key, def string) string {
 	return def
 }
 
+func debugLog(format string, v ...interface{}) {
+	if debugEnabled {
+		log.Printf("[DEBUG] "+format, v...)
+	}
+}
+
 func main() {
-	log.Printf("Starting strm-watcher: source=%s, link=%s", sourceRoot, linkRoot)
+	debugVal := strings.ToLower(strings.TrimSpace(os.Getenv("STRM_DEBUG")))
+	if debugVal != "" && debugVal != "0" && debugVal != "false" && debugVal != "no" {
+		debugEnabled = true
+	}
+	log.Printf("Starting strm-watcher: source=%s, link=%s, debug=%v", sourceRoot, linkRoot, debugEnabled)
 
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -41,6 +52,7 @@ func run() error {
 
 	w, err := fswatcher.New(
 		fswatcher.WithPath(sourceRoot, fswatcher.WithDepth(fswatcher.WatchNested)),
+		fswatcher.WithIncRegex(`\.strm$`),
 		fswatcher.WithCooldown(200*time.Millisecond),
 	)
 	if err != nil {
@@ -52,12 +64,11 @@ func run() error {
 	defer cancel()
 
 	go func() {
-		if err := w.Watch(ctx); err != nil {
+		if err := w.Watch(ctx); err != nil && err != context.Canceled {
 			log.Printf("Watch error: %v", err)
 		}
 	}()
 
-	// 事件处理循环（独立 goroutine）
 	go func() {
 		for event := range w.Events() {
 			handleEvent(event)
@@ -111,19 +122,24 @@ func handleEvent(event fswatcher.WatchEvent) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			debugLog("File removed: %s", path)
 			if linkPath, ok := strmLinkCache.Load(path); ok {
 				deleteLink(linkPath.(string))
 				strmLinkCache.Delete(path)
 				log.Printf("Removed cached link for %s", path)
 			} else {
+				debugLog("No cached link found for %s, falling back to pattern delete", path)
 				deleteLinkByFilename(path)
 			}
+		} else {
+			log.Printf("Error stating %s: %v", path, err)
 		}
 		return
 	}
 	if info.IsDir() {
 		return
 	}
+	debugLog("Processing file: %s", path)
 	if err := processStrmFile(path); err != nil {
 		log.Printf("Error processing %s: %v", path, err)
 	}
@@ -155,6 +171,7 @@ func processStrmFile(strmPath string) error {
 		return err
 	}
 	linkPath := filepath.Join(linkDir, filepath.Base(target))
+	debugLog("Computed link path: %s", linkPath)
 
 	if oldLink, ok := strmLinkCache.Load(strmPath); ok {
 		if old := oldLink.(string); old != linkPath {
